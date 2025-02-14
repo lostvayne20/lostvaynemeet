@@ -1,24 +1,27 @@
 var peer;
 var myStream;
-var videoElements = {}; // Stocker les flux pour éviter les doublons
+var videoElements = {}; // Stocker les vidéos pour éviter les doublons
 
 // Fonction pour ajouter une vidéo à l'interface
 function ajoutVideo(stream, id) {
-    if (videoElements[id]) return; // Empêche d'ajouter plusieurs fois la même vidéo
+    if (videoElements[id]) {
+        console.log(`La vidéo ${id} est déjà affichée.`);
+        return;
+    }
 
     var video = document.createElement('video');
-    video.id = id; // Identifiant unique pour chaque vidéo
+    video.id = id; // Identifiant unique
     video.autoplay = true;
     video.controls = true;
     video.srcObject = stream;
     document.getElementById('participants').appendChild(video);
 
-    videoElements[id] = video; // Stocke la vidéo pour éviter le doublon
+    videoElements[id] = video; // Stocke la vidéo pour éviter les doublons
 }
 
 // Fonction d'enregistrement de l'utilisateur
 function register() {
-    var name = document.getElementById('name').value;
+    var name = document.getElementById('name').value.trim();
     if (!name) {
         console.error("Nom requis.");
         return;
@@ -34,16 +37,17 @@ function register() {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
             myStream = stream;
-            ajoutVideo(stream, "localVideo");
+            ajoutVideo(stream, "localVideo"); // Afficher la vidéo locale immédiatement
 
             document.getElementById('register').style.display = 'none';
             document.getElementById('userAdd').style.display = 'block';
             document.getElementById('userShare').style.display = 'block';
 
+            // Gestion des appels entrants
             peer.on('call', function(call) {
                 call.answer(myStream);
                 call.on('stream', function(remoteStream) {
-                    ajoutVideo(remoteStream, call.peer);
+                    ajoutVideo(remoteStream, call.peer); // Affiche la vidéo de l'invité
                 });
                 call.on('error', function(err) {
                     console.error("Erreur lors de l'appel :", err);
@@ -57,7 +61,7 @@ function register() {
 
 // Fonction pour appeler un utilisateur
 function appelUser() {
-    var name = document.getElementById('add').value;
+    var name = document.getElementById('add').value.trim();
     if (!name) {
         console.error("Nom de l'utilisateur requis.");
         return;
@@ -77,7 +81,7 @@ function appelUser() {
 
 // Fonction pour partager l'écran
 function addScreenShare() {
-    var name = document.getElementById('share').value;
+    var name = document.getElementById('share').value.trim();
     if (!name) {
         console.error("Nom de l'utilisateur requis.");
         return;
@@ -94,6 +98,7 @@ function addScreenShare() {
                 console.error("Erreur de partage d'écran :", err);
             });
 
+            // Revenir à la caméra après le partage d'écran
             stream.getVideoTracks()[0].onended = function() {
                 navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                     .then(newStream => {
